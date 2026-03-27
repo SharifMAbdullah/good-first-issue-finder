@@ -1,11 +1,13 @@
 // src/app/api/issues/route.ts
+export const runtime = 'edge';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { 
   Platform, 
   FetchIssuesParams, 
   PaginatedResponse, 
   RawGithubIssue, 
-  RawGitlabIssue, 
+  // RawGitlabIssue, 
   UnifiedIssue 
 } from '@/types/issues';
 import { normalizeGithubIssue, normalizeGitlabIssue } from '@/lib/adapters/issueAdapters';
@@ -28,7 +30,8 @@ const fetchGithubIssues = async (languages: string[], page: number): Promise<Uni
     const response: Response = await fetch(url, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`
+        'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
+        'User-Agent': 'OpenSource-Start-Tracker'
       },
       next: { revalidate: 60 } 
     });
