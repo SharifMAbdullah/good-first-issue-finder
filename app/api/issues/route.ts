@@ -42,8 +42,7 @@ const fetchGithubIssues = async (languages: string[], page: number): Promise<Uni
     return data.items.map((raw: RawGithubIssue): UnifiedIssue => normalizeGithubIssue(raw));
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
-    console.error(`GitHub fetch failed:`, msg);
-    throw new Error(`GitHub Fetch Failed: ${msg}. Token exists: ${!!process.env.GITHUB_TOKEN}`); 
+    return NextResponse.json({ error: msg, hasToken: !!process.env.GITHUB_TOKEN }, { status: 400 });
   }
 };
 
