@@ -41,8 +41,9 @@ const fetchGithubIssues = async (languages: string[], page: number): Promise<Uni
     const data: { items: RawGithubIssue[] } = await response.json();
     return data.items.map((raw: RawGithubIssue): UnifiedIssue => normalizeGithubIssue(raw));
   } catch (error: unknown) {
-    console.error(`GitHub fetch failed:`, error);
-    return []; // Graceful degradation: return empty array instead of crashing
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`GitHub fetch failed:`, msg);
+    throw new Error(`GitHub Fetch Failed: ${msg}. Token exists: ${!!process.env.GITHUB_TOKEN}`); 
   }
 };
 
