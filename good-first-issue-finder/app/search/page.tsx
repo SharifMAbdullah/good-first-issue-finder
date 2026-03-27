@@ -23,6 +23,8 @@ const SearchContent = (): React.ReactElement => {
   // 2. Fetch data based on URL state
   const { issues, isLoading, error } = useLiveIssues(activePlatforms, activeLanguages, currentPage);
 
+  const isGitlabSelected: boolean = activePlatforms.includes('gitlab');
+
   return (
     <div className="flex flex-col md:flex-row gap-8">
       <FilterSidebar
@@ -33,7 +35,17 @@ const SearchContent = (): React.ReactElement => {
       />
 
       <main className="flex-1 flex flex-col min-w-0">
-        
+        {/* WIP Banner for GitLab */}
+        {isGitlabSelected && (
+          <div className="mb-6 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <p className="text-xs text-amber-200/70 font-medium uppercase tracking-wider">
+              GitLab Integration: Work in Progress. Results currently limited to GitHub.
+            </p>
+          </div>
+        )}
+
+
         {/* Status Indicators */}
         <div className="mb-6 h-6 flex items-center">
           {isLoading && <span className="text-sm text-blue-400 animate-pulse">Synchronizing with upstreams...</span>}
@@ -43,6 +55,20 @@ const SearchContent = (): React.ReactElement => {
           )}
         </div>
 
+        <div className="relative min-h-100]">
+          {/* If GitHub is NOT selected and GitLab IS, show a clear empty state */}
+          {!isLoading && !activePlatforms.includes('github') && isGitlabSelected && (
+            <div className="py-20 text-center border border-dashed border-zinc-800 rounded-2xl">
+              <h3 className="text-zinc-300 font-medium mb-2">GitLab Alpha Testing</h3>
+              <p className="text-zinc-500 text-sm max-w-xs mx-auto">
+                We are currently refining the GitLab search adapter to meet quality standards. 
+                Please select GitHub to view active issues.
+              </p>
+            </div>
+          )}
+          {/* Maybe some real issues some day */}
+        </div>
+        
         {/* Results Grid */}
         <div className="relative min-h-100">
           {!isLoading && !error && issues.length === 0 ? (
