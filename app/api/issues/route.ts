@@ -30,7 +30,7 @@ const fetchGithubIssues = async (languages: string[], page: number): Promise<Uni
     const response: Response = await fetch(url, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        // 'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
+        'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
         'User-Agent': 'OpenSource-Start-Tracker'
       },
       next: { revalidate: 60 } 
@@ -41,7 +41,7 @@ const fetchGithubIssues = async (languages: string[], page: number): Promise<Uni
     const data: { items: RawGithubIssue[] } = await response.json();
     return data.items.map((raw: RawGithubIssue): UnifiedIssue => normalizeGithubIssue(raw));
   } catch (error: unknown) {
-    console.error(`Github fetch failed:`, error);
+    console.error("Error fetching Github Issues: ", error);
     return [];
   }
 };
