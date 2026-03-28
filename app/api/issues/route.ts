@@ -1,6 +1,4 @@
 // src/app/api/issues/route.ts
-export const runtime = 'edge';
-
 import { NextRequest, NextResponse } from 'next/server';
 import { 
   Platform, 
