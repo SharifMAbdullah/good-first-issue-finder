@@ -1,7 +1,7 @@
 // src/app/page.tsx
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Search, GitMerge, Zap, ArrowRight, Github, Gitlab } from 'lucide-react';
@@ -14,6 +14,54 @@ interface FeatureDef {
   description: string;
   icon: React.ReactNode;
 }
+
+interface VisitorData {
+  allTime: number;
+  today: number;
+}
+
+const VisitorStats = (): React.ReactElement => {
+  const [data, setData] = useState<VisitorData | null>(null);
+  const [error, setError] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchStats = async (): Promise<void> => {
+      try {
+        const res: Response = await fetch('/api/stats');
+        if (!res.ok) throw new Error('Failed to fetch');
+        
+        const stats: VisitorData = await res.json();
+        setData(stats);
+      } catch (err: unknown) {
+        console.error(err);
+        setError(true);
+      }
+    };
+
+    fetchStats();
+  }, []); // Empty dependency array means this runs once on mount
+
+  if (error) {
+    return <div className="text-sm text-red-400/60">Stats unavailable</div>;
+  }
+
+  if (!data) {
+    return <div className="text-sm text-zinc-500 animate-pulse">Loading stats...</div>;
+  }
+
+return (
+    <div className="fixed bottom-6 right-6 bg-zinc-900/80 backdrop-blur-md border border-zinc-700 rounded-2xl px-5 py-3 text-xs text-zinc-400 z-50 shadow-xl">
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <span className="text-emerald-400">●</span>
+          <span>Today: <span className="text-white font-medium">{data.today}</span></span>
+        </div>
+        <div>All-time: <span className="text-white font-medium">{data.allTime}</span></div>
+      </div>
+    </div>
+  );
+};
+
 
 const HomePage = (): React.ReactElement => {
   const features: FeatureDef[] = [
@@ -39,10 +87,8 @@ const HomePage = (): React.ReactElement => {
 
   return (
     <div className="min-h-screen bg-black text-zinc-200 font-sans selection:bg-blue-500/30 overflow-hidden relative">
-      
-      {/* Background Embellishments for a "slick" feel */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] opacity-20 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-600/30 to-transparent blur-[100px] rounded-full" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-250 h-125 opacity-20 pointer-events-none">
+        <div className="absolute inset-0 bg-linear-to-b from-blue-600/30 to-transparent blur-[100px] rounded-full" />
       </div>
 
       <div className="max-w-6xl mx-auto px-6 pt-32 pb-20 relative z-10">
@@ -69,7 +115,7 @@ const HomePage = (): React.ReactElement => {
             className="text-5xl md:text-7xl font-bold text-white tracking-tight mb-8"
           >
             Your First Commit, <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+            <span className="text-transparent bg-clip-text bg--to-r from-blue-400 to-cyan-400">
               Simplified.
             </span>
           </motion.h1>
@@ -121,6 +167,7 @@ const HomePage = (): React.ReactElement => {
         </div>
 
       </div>
+      <VisitorStats/>
     </div>
   );
 };
