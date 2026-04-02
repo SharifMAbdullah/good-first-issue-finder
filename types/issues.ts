@@ -7,6 +7,7 @@ export interface UnifiedIssue {
   id: string;
   platform: Platform;
   title: string;
+  author: string;
   url: string;
   repositoryName: string;
   labels: string[];
@@ -14,23 +15,29 @@ export interface UnifiedIssue {
   language: string | null;
 }
 
-// Minimal representations of the raw 3rd-party payloads we care about
 export interface RawGithubIssue {
   id: number;
   html_url: string;
   title: string;
+  author: string;
   created_at: string;
   repository_url: string;
   labels: Array<{ name: string }>;
 }
 
+export interface GitlabReferences {
+  full: string;
+}
+
 export interface RawGitlabIssue {
   id: number;
-  web_url: string;
   title: string;
+  state: string;
   created_at: string;
-  references: { full: string };
+  references: GitlabReferences;
   labels: string[];
+  web_url: string;
+  author: string;
 }
 
 export interface FetchIssuesParams {

@@ -5,9 +5,10 @@ import {
   FetchIssuesParams, 
   PaginatedResponse, 
   RawGithubIssue, 
-  // RawGitlabIssue, 
+  RawGitlabIssue, 
   UnifiedIssue 
 } from '@/types/issues';
+import { KNOWN_GITLAB_INSTANCES, GitlabInstance } from '@/lib/constants/gitLabInstances';
 import { normalizeGithubIssue, normalizeGitlabIssue } from '@/lib/adapters/issueAdapters';
 
 const parseArrayParam = (param: string | null): string[] => {
@@ -44,34 +45,94 @@ const fetchGithubIssues = async (languages: string[], page: number): Promise<Uni
   }
 };
 
-const fetchGitlabIssues = async (languages: string[], page: number): Promise<UnifiedIssue[]> => {
-  // GitLab relies strictly on labels rather than a parsed language AST.
-  // We combine a generic beginner label with the requested languages.
-  // const labels: string[] = ['quick win', ...languages];
-  // const encodedLabels: string = encodeURIComponent(labels.join(','));
-  
-  // // GitLab v4 API for global open issues
-  // const url: string = `https://gitlab.com/api/v4/issues?state=opened&labels=${encodedLabels}&per_page=20&page=${page}`;
+const fetchSingleGitlabIssue = async (
+  languages: string[], 
+  page: number, 
+  instance: GitlabInstance
+): Promise<UnifiedIssue[]> => {
+  const startTime: number = performance.now();
+  const controller: AbortController = new AbortController();
+  // Set a strict 3.5-second timeout per instance to prevent the 10s hang
+  const timeoutId: ReturnType<typeof setTimeout> = setTimeout((): void => {
+    controller.abort();
+  }, 3500);
 
   try {
-  //   const response: Response = await fetch(url, {
-  //     headers: {
-  //       'Accept': 'application/json',
-  //       // 'PRIVATE-TOKEN': process.env.GITLAB_TOKEN
-  //     },
-  //     next: { revalidate: 60 }
-  //   });
+    let apiUrl: string = `${instance.baseUrl}/api/v4/issues`;
+    if (instance.path) {
+      const encodedPath = encodeURIComponent(instance.path)
+      apiUrl = `${instance.baseUrl}/api/v4/groups/${encodedPath}/issues`
+    }
 
-  //   if (!response.ok) throw new Error(`Status ${response.status}`);
+    const params: URLSearchParams = new URLSearchParams({
+      scope: 'all',
+      state: 'opened',
+      order_by: 'created_at',
+      sort: 'desc',
+      per_page: '4',
+      page: page.toString(),
+    });
 
-  //   // GitLab returns an array directly, not an object with an 'items' property
-  //   const data: RawGitlabIssue[] = await response.json();
-  //   return data.map((raw: RawGitlabIssue): UnifiedIssue => normalizeGitlabIssue(raw));
-  return []
+    if (instance.name == 'GitLab') {
+      params.set('labels', 'quick win')
+    }
+
+    const url: string = `${apiUrl}?${params.toString()}`;
+
+    const headers: HeadersInit = {
+      'Accept': 'application/json',
+      'User-Agent': 'OpenSource-Start-Tracker',
+      'Authorization': `PRIVATE-TOKEN: ${process.env.GITLAB_TOKEN}`,
+    };
+
+    const response: Response = await fetch(url, {
+      headers,
+      next: { revalidate: 60 },
+      signal: controller.signal // Attaches the abort timeout
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`GitLab API rejected request with status: ${response.status}`);
+    }
+
+    const data: RawGitlabIssue[] = await response.json();
+    const gitlabIssues: RawGitlabIssue[] = data as RawGitlabIssue[];
+    
+    const endTime: number = performance.now();
+    console.log(`[${instance.name}] Fetched successfully in ${Math.round(endTime - startTime)}ms`);
+
+    return gitlabIssues.map((issue: RawGitlabIssue): UnifiedIssue => normalizeGitlabIssue(issue, instance.name));
+    
   } catch (error: unknown) {
-    console.error(`GitLab fetch failed:`, error);
-    return []; // Graceful degradation
+    clearTimeout(timeoutId);
+    
+    // Check if the error was caused by our AbortController timeout
+    if (error instanceof Error && error.name === 'AbortError') {
+       console.error(`[${instance.name}] GitLab fetch timed out after 3.5s to prevent hanging.`);
+       return [];
+    }
+
+    const msg: string = error instanceof Error ? error.message : String(error);
+    console.error(`[${instance.name}] GitLab fetch failed:`, msg);
+    return [];
   }
+};
+
+const fetchAllGitlabIssues = async (
+  languages: string[], 
+  page: number
+): Promise<UnifiedIssue[]> => {
+  const fetchPromises: Array<Promise<UnifiedIssue[]>> = KNOWN_GITLAB_INSTANCES.map(
+    (instance: GitlabInstance): Promise<UnifiedIssue[]> => 
+      fetchSingleGitlabIssue(languages, page, instance)
+  );
+  
+  const results: Array<Array<UnifiedIssue>> = await Promise.all(fetchPromises);
+  const flatResults: Array<UnifiedIssue> = results.flat();
+  
+  return flatResults;
 };
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -96,7 +157,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
     
     if (params.platforms.includes('gitlab')) {
-      fetchPromises.push(fetchGitlabIssues(params.languages, params.page));
+      fetchPromises.push(fetchAllGitlabIssues(params.languages, params.page));
     }
 
     // Execute concurrently. Because our individual fetchers catch their own errors 

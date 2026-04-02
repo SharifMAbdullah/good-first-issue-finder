@@ -6,7 +6,6 @@ import { FilterSidebar } from '@/components/search/FilterSidebar';
 import { useLiveFilters } from '@/hooks/useLiveFilters';
 import { useLiveIssues } from '@/hooks/useLiveIssues';
 import { UnifiedIssue } from '@/types/issues';
-// Assuming ResultCard is imported here once adapted to UnifiedIssue
 import { ResultCard } from '@/components/search/ResultCard';
 
 const SearchContent = (): React.ReactElement => {
@@ -35,16 +34,6 @@ const SearchContent = (): React.ReactElement => {
       />
 
       <main className="flex-1 flex flex-col min-w-0">
-        {/* WIP Banner for GitLab */}
-        {isGitlabSelected && (
-          <div className="mb-6 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <p className="text-xs text-amber-200/70 font-medium uppercase tracking-wider">
-              GitLab Integration: Work in Progress. Results currently limited to GitHub.
-            </p>
-          </div>
-        )}
-
 
         {/* Status Indicators */}
         <div className="mb-6 h-6 flex items-center">
@@ -53,20 +42,6 @@ const SearchContent = (): React.ReactElement => {
           {!isLoading && !error && issues.length > 0 && (
             <span className="text-sm text-zinc-500">Showing {issues.length} open issues</span>
           )}
-        </div>
-
-        <div className="relative min-h-100]">
-          {/* If GitHub is NOT selected and GitLab IS, show a clear empty state */}
-          {!isLoading && !activePlatforms.includes('github') && isGitlabSelected && (
-            <div className="py-20 text-center border border-dashed border-zinc-800 rounded-2xl">
-              <h3 className="text-zinc-300 font-medium mb-2">GitLab Alpha Testing</h3>
-              <p className="text-zinc-500 text-sm max-w-xs mx-auto">
-                We are currently refining the GitLab search adapter to meet quality standards. 
-                Please select GitHub to view active issues.
-              </p>
-            </div>
-          )}
-          {/* Maybe some real issues some day */}
         </div>
         
         {/* Results Grid */}
@@ -132,7 +107,7 @@ const SearchPage = (): React.ReactElement => {
             <h1 className="text-3xl font-semibold text-white tracking-tight">OpenSource Start</h1>
           </div>
           <p className="text-zinc-500 text-sm max-w-xl">
-            A unified dashboard for discovering "Good First Issues" and "Quick Wins" across GitHub and GitLab. Select your stack and start contributing.
+            A unified dashboard for discovering `&#34;`Good First Issues`&#34;` and `&#34;`Quick Wins`&#34;` across GitHub and GitLab. Select your stack and start contributing.
           </p>
         </header>
 

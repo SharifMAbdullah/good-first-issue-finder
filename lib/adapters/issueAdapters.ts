@@ -10,6 +10,7 @@ export const normalizeGithubIssue = (raw: RawGithubIssue): UnifiedIssue => {
     id: `gh-${raw.id}`,
     platform: 'github',
     title: raw.title,
+    author: raw.author,
     url: raw.html_url,
     repositoryName: repoName,
     labels: mappedLabels,
@@ -18,9 +19,12 @@ export const normalizeGithubIssue = (raw: RawGithubIssue): UnifiedIssue => {
   };
 };
 
-export const normalizeGitlabIssue = (raw: RawGitlabIssue): UnifiedIssue => {
-  // Extract 'group/project' from 'group/project#1'
-  const repoName: string = raw.references.full.split('#')[0];
+export const normalizeGitlabIssue = (raw: RawGitlabIssue, sourceName: string): UnifiedIssue => {
+  // Extract repository path before the issue number hash
+  const referenceParts: string[] = raw.references.full.split('#');
+  const repoPath: string = referenceParts[0] || 'Unknown Repository';
+
+  const repoName: string = `${sourceName}: ${repoPath.split('/').pop() || repoPath}`
 
   return {
     id: `gl-${raw.id}`,
@@ -30,6 +34,7 @@ export const normalizeGitlabIssue = (raw: RawGitlabIssue): UnifiedIssue => {
     repositoryName: repoName,
     labels: raw.labels,
     createdAt: raw.created_at,
+    author: raw.author,
     language: null,
   };
 };
