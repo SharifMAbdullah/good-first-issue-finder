@@ -43,7 +43,7 @@ export const FilterSidebar = ({
   );
 
   return (
-    <aside className="w-full md:w-64 flex-shrink-0 sticky top-6 self-start space-y-8">
+    <aside className="w-full md:w-64 shrink-0 sticky top-6 self-start space-y-8">
       <div className="p-5 bg-zinc-900/50 border border-zinc-800 rounded-xl backdrop-blur-sm">
         
         {/* Platform Section */}

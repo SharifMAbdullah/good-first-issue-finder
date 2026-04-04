@@ -7,6 +7,7 @@ import { useLiveFilters } from '@/hooks/useLiveFilters';
 import { useLiveIssues } from '@/hooks/useLiveIssues';
 import { UnifiedIssue } from '@/types/issues';
 import { ResultCard } from '@/components/search/ResultCard';
+import { Header } from '@/components/ui/header';
 
 const SearchContent = (): React.ReactElement => {
   // 1. Read state from URL
@@ -21,8 +22,6 @@ const SearchContent = (): React.ReactElement => {
 
   // 2. Fetch data based on URL state
   const { issues, isLoading, error } = useLiveIssues(activePlatforms, activeLanguages, currentPage);
-
-  const isGitlabSelected: boolean = activePlatforms.includes('gitlab');
 
   return (
     <div className="flex flex-col md:flex-row gap-8">
@@ -98,21 +97,10 @@ const SearchPage = (): React.ReactElement => {
     <div className="min-h-screen bg-black text-zinc-200 p-6 md:p-12 font-sans selection:bg-blue-500/30">
       <div className="max-w-7xl mx-auto">
         
-        {/* Header Component injected directly into layout */}
-        <header className="mb-10 pb-6 border-b border-zinc-800/50">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
-              <span className="text-blue-500 font-bold text-lg">O</span>
-            </div>
-            <h1 className="text-3xl font-semibold text-white tracking-tight">OpenSource Start</h1>
-          </div>
-          <p className="text-zinc-500 text-sm max-w-xl">
-            A unified dashboard for discovering `&#34;`Good First Issues`&#34;` and `&#34;`Quick Wins`&#34;` across GitHub and GitLab. Select your stack and start contributing.
-          </p>
-        </header>
+        {/* Modular Layout Component */}
+        <Header />
 
-        {/* Suspense boundary required by Next.js when using useSearchParams in Client Components */}
-        <Suspense fallback={<div className="text-zinc-500 animate-pulse">Initializing router...</div>}>
+        <Suspense fallback={<div className="text-zinc-500 animate-pulse mt-8">Initializing router...</div>}>
           <SearchContent />
         </Suspense>
 
@@ -120,5 +108,4 @@ const SearchPage = (): React.ReactElement => {
     </div>
   );
 };
-
 export default SearchPage;
