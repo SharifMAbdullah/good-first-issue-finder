@@ -1,6 +1,6 @@
 // src/hooks/useLiveIssues.ts
 import { useState, useEffect, useCallback } from 'react';
-import { UnifiedIssue, Platform } from '@/types/issues';
+import { UnifiedIssue, Platform, SortOption } from '@/types/issues';
 
 export interface LiveIssuesState {
   issues: UnifiedIssue[];
@@ -8,7 +8,7 @@ export interface LiveIssuesState {
   error: string | null;
 }
 
-export const useLiveIssues = (platforms: Platform[], languages: string[], page: number): LiveIssuesState => {
+export const useLiveIssues = (platforms: Platform[], languages: string[], page: number, query: string = '', sortBy: SortOption = 'newest'): LiveIssuesState => {
   const [state, setState] = useState<LiveIssuesState>({
     issues: [],
     isLoading: true,
@@ -22,6 +22,8 @@ export const useLiveIssues = (platforms: Platform[], languages: string[], page: 
       const params: URLSearchParams = new URLSearchParams();
       if (platforms.length > 0) params.append('platforms', platforms.join(','));
       if (languages.length > 0) params.append('languages', languages.join(','));
+      if (query) params.append('q', query);
+      params.append('sort', sortBy);
       params.append('page', page.toString());
 
       const response: Response = await fetch(`/api/issues?${params.toString()}`);
@@ -38,7 +40,7 @@ export const useLiveIssues = (platforms: Platform[], languages: string[], page: 
       const errorMessage: string = error instanceof Error ? error.message : 'An unknown network error occurred';
       setState({ issues: [], isLoading: false, error: errorMessage });
     }
-  }, [platforms, languages, page]);
+  }, [platforms, languages, page, query, sortBy]);
 
   useEffect((): void => {
     fetchIssues();

@@ -16,14 +16,88 @@ const parseArrayParam = (param: string | null): string[] => {
   return param.split(',').map((val: string): string => val.trim().toLowerCase());
 };
 
-const fetchGithubIssues = async (languages: string[], page: number): Promise<UnifiedIssue[]> => {
-  const languageQuery: string = languages.length > 0 
-    ? languages.map((lang: string): string => `language:${lang}`).join(' ') 
+const getGithubSortParams = (sortBy: string): string => {
+  switch (sortBy) {
+    case 'oldest':   return '&sort=created&order=asc';
+    case 'updated':  return '&sort=updated&order=desc';
+    case 'comments': return '&sort=comments&order=desc';
+    default:         return '&sort=created&order=desc';
+  }
+};
+
+const getGitlabSortParams = (sortBy: string): { order_by: string; sort: string } => {
+  switch (sortBy) {
+    case 'oldest':   return { order_by: 'created_at', sort: 'asc' };
+    case 'updated':  return { order_by: 'updated_at', sort: 'desc' };
+    default:         return { order_by: 'created_at', sort: 'desc' };
+  }
+};
+
+const enrichGithubIssuesWithRepoData = async (
+  issues: UnifiedIssue[],
+  includeStarsForks: boolean = false
+): Promise<UnifiedIssue[]> => {
+  const uniqueRepos = [...new Set(issues.map(i => i.repositoryName))];
+
+  const repoDataMap = new Map<string, { language: string | null; stars: number; forks: number }>();
+  await Promise.all(
+    uniqueRepos.map(async (repoName) => {
+      try {
+        const res = await fetch(`https://api.github.com/repos/${repoName}`, {
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
+            'User-Agent': 'OpenSource-Start-Tracker',
+          },
+          next: { revalidate: 300 },
+        });
+        if (res.ok) {
+          const data: { language?: string | null; stargazers_count?: number; forks_count?: number } = await res.json();
+          repoDataMap.set(repoName, {
+            language: data.language ?? null,
+            stars: data.stargazers_count ?? 0,
+            forks: data.forks_count ?? 0,
+          });
+        }
+      } catch { /* silently skip */ }
+    })
+  );
+
+  return issues.map(issue => {
+    const repoData = repoDataMap.get(issue.repositoryName);
+    return {
+      ...issue,
+      language: repoData?.language ?? null,
+      ...(includeStarsForks ? {
+        repoStars: repoData?.stars ?? null,
+        repoForks: repoData?.forks ?? null,
+      } : {}),
+    };
+  });
+};
+
+const sortIssues = (issues: UnifiedIssue[], sortBy: string): void => {
+  issues.sort((a, b) => {
+    switch (sortBy) {
+      case 'oldest':   return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      case 'updated':  return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      case 'comments': return b.commentCount - a.commentCount;
+      case 'stars':    return (b.repoStars ?? 0) - (a.repoStars ?? 0);
+      case 'forks':    return (b.repoForks ?? 0) - (a.repoForks ?? 0);
+      default:         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+  });
+};
+
+const fetchGithubIssues = async (languages: string[], page: number, query: string = '', sortBy: string = 'newest'): Promise<UnifiedIssue[]> => {
+  const languageQuery: string = languages.length > 0
+    ? languages.map((lang: string): string => `language:${lang}`).join(' ')
     : '';
-  
-  const searchQuery: string = `label:"good first issue" state:open ${languageQuery}`.trim();
+
+  const searchQuery: string = `label:"good first issue" state:open ${languageQuery} ${query}`.trim();
   const encodedQuery: string = encodeURIComponent(searchQuery);
-  const url: string = `https://api.github.com/search/issues?q=${encodedQuery}&per_page=20&page=${page}`;
+  const sortParams: string = getGithubSortParams(sortBy);
+  const url: string = `https://api.github.com/search/issues?q=${encodedQuery}&per_page=20&page=${page}${sortParams}`;
 
   try {
     const response: Response = await fetch(url, {
@@ -46,9 +120,11 @@ const fetchGithubIssues = async (languages: string[], page: number): Promise<Uni
 };
 
 const fetchSingleGitlabIssue = async (
-  languages: string[], 
-  page: number, 
-  instance: GitlabInstance
+  languages: string[],
+  page: number,
+  instance: GitlabInstance,
+  query: string = '',
+  sortBy: string = 'newest'
 ): Promise<UnifiedIssue[]> => {
   const startTime: number = performance.now();
   const controller: AbortController = new AbortController();
@@ -64,17 +140,22 @@ const fetchSingleGitlabIssue = async (
       apiUrl = `${instance.baseUrl}/api/v4/groups/${encodedPath}/issues`
     }
 
+    const glSort = getGitlabSortParams(sortBy);
     const params: URLSearchParams = new URLSearchParams({
       scope: 'all',
       state: 'opened',
-      order_by: 'created_at',
-      sort: 'desc',
+      order_by: glSort.order_by,
+      sort: glSort.sort,
       per_page: '4',
       page: page.toString(),
     });
 
     if (instance.name == 'GitLab') {
       params.set('labels', 'quick win')
+    }
+
+    if (query) {
+      params.set('search', query);
     }
 
     const url: string = `${apiUrl}?${params.toString()}`;
@@ -121,12 +202,14 @@ const fetchSingleGitlabIssue = async (
 };
 
 const fetchAllGitlabIssues = async (
-  languages: string[], 
-  page: number
+  languages: string[],
+  page: number,
+  query: string = '',
+  sortBy: string = 'newest'
 ): Promise<UnifiedIssue[]> => {
   const fetchPromises: Array<Promise<UnifiedIssue[]>> = KNOWN_GITLAB_INSTANCES.map(
-    (instance: GitlabInstance): Promise<UnifiedIssue[]> => 
-      fetchSingleGitlabIssue(languages, page, instance)
+    (instance: GitlabInstance): Promise<UnifiedIssue[]> =>
+      fetchSingleGitlabIssue(languages, page, instance, query, sortBy)
   );
   
   const results: Array<Array<UnifiedIssue>> = await Promise.all(fetchPromises);
@@ -142,6 +225,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const platformsParam: string[] = parseArrayParam(searchParams.get('platforms'));
     const languagesParam: string[] = parseArrayParam(searchParams.get('languages'));
     const pageParam: number = parseInt(searchParams.get('page') || '1', 10);
+    const queryParam: string = searchParams.get('q')?.trim() || '';
+    const sortParam: string = searchParams.get('sort') || 'newest';
 
     const params: FetchIssuesParams = {
       platforms: (platformsParam.length > 0 ? platformsParam : ['github']) as Platform[],
@@ -153,24 +238,30 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Push fetch promises based on active URL state
     if (params.platforms.includes('github')) {
-      fetchPromises.push(fetchGithubIssues(params.languages, params.page));
+      fetchPromises.push(fetchGithubIssues(params.languages, params.page, queryParam, sortParam));
     }
-    
+
     if (params.platforms.includes('gitlab')) {
-      fetchPromises.push(fetchAllGitlabIssues(params.languages, params.page));
+      fetchPromises.push(fetchAllGitlabIssues(params.languages, params.page, queryParam, sortParam));
     }
 
     // Execute concurrently. Because our individual fetchers catch their own errors 
     // and return [], Promise.all is safe to use here without fear of a single rejection 
     // destroying the entire request.
     const results: UnifiedIssue[][] = await Promise.all(fetchPromises);
-    
-    const combinedIssues: UnifiedIssue[] = results.flat();
 
-    // Sort combined results by newest first to interleave GitHub and GitLab issues naturally
-    combinedIssues.sort((a: UnifiedIssue, b: UnifiedIssue): number => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    let combinedIssues: UnifiedIssue[] = results.flat();
+
+    // Always enrich GitHub issues with repo language; include stars/forks only when sorting by those fields
+    const githubIssues = combinedIssues.filter(i => i.platform === 'github');
+    if (githubIssues.length > 0) {
+      const otherIssues = combinedIssues.filter(i => i.platform !== 'github');
+      const includeStarsForks = sortParam === 'stars' || sortParam === 'forks';
+      const enriched = await enrichGithubIssuesWithRepoData(githubIssues, includeStarsForks);
+      combinedIssues = [...enriched, ...otherIssues];
+    }
+
+    sortIssues(combinedIssues, sortParam);
 
     const responsePayload: PaginatedResponse = {
       issues: combinedIssues,

@@ -2,6 +2,8 @@
 
 export type Platform = 'github' | 'gitlab';
 
+export type SortOption = 'newest' | 'oldest' | 'updated' | 'comments' | 'stars' | 'forks';
+
 // Our clean, unified interface
 export interface UnifiedIssue {
   id: string;
@@ -12,6 +14,10 @@ export interface UnifiedIssue {
   repositoryName: string;
   labels: string[];
   createdAt: string;
+  updatedAt: string;
+  commentCount: number;
+  repoStars: number | null;
+  repoForks: number | null;
   language: string | null;
 }
 
@@ -21,6 +27,8 @@ export interface RawGithubIssue {
   title: string;
   author: string;
   created_at: string;
+  updated_at: string;
+  comments: number;
   repository_url: string;
   labels: Array<{ name: string }>;
 }
@@ -34,6 +42,8 @@ export interface RawGitlabIssue {
   title: string;
   state: string;
   created_at: string;
+  updated_at: string;
+  user_notes_count: number;
   references: GitlabReferences;
   labels: string[];
   web_url: string;
