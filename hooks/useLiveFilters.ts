@@ -1,15 +1,20 @@
 // src/hooks/useLiveFilters.ts
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Platform } from '@/types/issues';
+import { Platform, SortOption } from '@/types/issues';
 
 export interface UseLiveFiltersReturn {
   activePlatforms: Platform[];
   activeLanguages: string[];
   currentPage: number;
+  searchQuery: string;
+  debouncedQuery: string;
+  sortBy: SortOption;
   togglePlatform: (platform: Platform) => void;
   toggleLanguage: (language: string) => void;
   setPage: (page: number) => void;
+  setSearchQuery: (query: string) => void;
+  setSortBy: (sort: SortOption) => void;
 }
 
 export const useLiveFilters = (): UseLiveFiltersReturn => {
@@ -29,6 +34,12 @@ export const useLiveFilters = (): UseLiveFiltersReturn => {
   }, [searchParams]);
 
   const currentPage: number = parseInt(searchParams.get('page') || '1', 10);
+
+  const searchQuery: string = searchParams.get('q') || '';
+  const [localQuery, setLocalQuery] = useState<string>(searchQuery);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const sortBy: SortOption = (searchParams.get('sort') as SortOption) || 'newest';
 
   // Helper to update URL without refreshing the page
   const updateUrl = useCallback((key: string, values: string[] | string): void => {
@@ -70,9 +81,21 @@ export const useLiveFilters = (): UseLiveFiltersReturn => {
     updateUrl('languages', newLanguages);
   }, [activeLanguages, updateUrl]);
 
+  const setSearchQuery = useCallback((query: string): void => {
+    setLocalQuery(query);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      updateUrl('q', query);
+    }, 300);
+  }, [updateUrl]);
+
+  const setSortBy = useCallback((sort: SortOption): void => {
+    updateUrl('sort', sort);
+  }, [updateUrl]);
+
   const setPage = useCallback((page: number): void => {
     updateUrl('page', page.toString());
   }, [updateUrl]);
 
-  return { activePlatforms, activeLanguages, currentPage, togglePlatform, toggleLanguage, setPage };
+  return { activePlatforms, activeLanguages, currentPage, searchQuery: localQuery, debouncedQuery: searchQuery, sortBy, togglePlatform, toggleLanguage, setPage, setSearchQuery, setSortBy };
 };

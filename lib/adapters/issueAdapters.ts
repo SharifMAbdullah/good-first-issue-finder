@@ -15,7 +15,11 @@ export const normalizeGithubIssue = (raw: RawGithubIssue): UnifiedIssue => {
     repositoryName: repoName,
     labels: mappedLabels,
     createdAt: raw.created_at,
-    language: null, // Requires an additional API call to the repo endpoint to be perfectly accurate, omitted for performance
+    updatedAt: raw.updated_at,
+    commentCount: raw.comments ?? 0,
+    repoStars: null,
+    repoForks: null,
+    language: null,
   };
 };
 
@@ -34,6 +38,10 @@ export const normalizeGitlabIssue = (raw: RawGitlabIssue, sourceName: string): U
     repositoryName: repoName,
     labels: raw.labels,
     createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
+    commentCount: raw.user_notes_count ?? 0,
+    repoStars: null,
+    repoForks: null,
     author: raw.author,
     language: null,
   };

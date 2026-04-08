@@ -3,6 +3,8 @@
 
 import React, { Suspense } from 'react';
 import { FilterSidebar } from '@/components/search/FilterSidebar';
+import { SearchBar } from '@/components/search/SearchBar';
+import { SortDropdown } from '@/components/search/SortDropdown';
 import { useLiveFilters } from '@/hooks/useLiveFilters';
 import { useLiveIssues } from '@/hooks/useLiveIssues';
 import { UnifiedIssue } from '@/types/issues';
@@ -11,17 +13,22 @@ import { Header } from '@/components/ui/header';
 
 const SearchContent = (): React.ReactElement => {
   // 1. Read state from URL
-  const { 
-    activePlatforms, 
-    activeLanguages, 
-    currentPage, 
-    togglePlatform, 
+  const {
+    activePlatforms,
+    activeLanguages,
+    currentPage,
+    searchQuery,
+    debouncedQuery,
+    sortBy,
+    togglePlatform,
     toggleLanguage,
-    setPage
+    setPage,
+    setSearchQuery,
+    setSortBy
   } = useLiveFilters();
 
-  // 2. Fetch data based on URL state
-  const { issues, isLoading, error } = useLiveIssues(activePlatforms, activeLanguages, currentPage);
+  // 2. Fetch data based on URL state (use debouncedQuery to avoid API calls per keystroke)
+  const { issues, isLoading, error } = useLiveIssues(activePlatforms, activeLanguages, currentPage, debouncedQuery, sortBy);
 
   return (
     <div className="flex flex-col md:flex-row gap-8">
@@ -34,13 +41,19 @@ const SearchContent = (): React.ReactElement => {
 
       <main className="flex-1 flex flex-col min-w-0">
 
-        {/* Status Indicators */}
-        <div className="mb-6 h-6 flex items-center">
-          {isLoading && <span className="text-sm text-blue-400 animate-pulse">Synchronizing with upstreams...</span>}
-          {error && <span className="text-sm text-red-500">Failed to fetch: {error}</span>}
-          {!isLoading && !error && issues.length > 0 && (
-            <span className="text-sm text-zinc-500">Showing {issues.length} open issues</span>
-          )}
+        {/* Search Bar */}
+        <SearchBar value={searchQuery} onChange={setSearchQuery} />
+
+        {/* Status Indicators & Sort */}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="h-6 flex items-center">
+            {isLoading && <span className="text-sm text-blue-400 animate-pulse">Synchronizing with upstreams...</span>}
+            {error && <span className="text-sm text-red-500">Failed to fetch: {error}</span>}
+            {!isLoading && !error && issues.length > 0 && (
+              <span className="text-sm text-zinc-500">Showing {issues.length} open issues</span>
+            )}
+          </div>
+          <SortDropdown value={sortBy} onChange={setSortBy} />
         </div>
         
         {/* Results Grid */}

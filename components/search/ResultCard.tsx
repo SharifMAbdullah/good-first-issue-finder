@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ExternalLink, Clock } from 'lucide-react';
+import { ExternalLink, Clock, MessageCircle, Star, GitFork } from 'lucide-react';
 import { UnifiedIssue } from '@/types/issues';
 import { BookmarkButton } from '../ui/bookmarkbutton';
 
@@ -66,6 +66,24 @@ export const ResultCard = ({ issue, onTagClick }: ResultCardProps): React.ReactE
             <div className="flex items-center gap-1 text-xs text-zinc-500">
               <Clock size={12} />
               <span>{formatDate(issue.createdAt)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-zinc-500">
+              <span className="flex items-center gap-1">
+                <MessageCircle size={12} />
+                {issue.commentCount}
+              </span>
+              {issue.repoStars != null && (
+                <span className="flex items-center gap-1">
+                  <Star size={12} />
+                  {issue.repoStars.toLocaleString()}
+                </span>
+              )}
+              {issue.repoForks != null && (
+                <span className="flex items-center gap-1">
+                  <GitFork size={12} />
+                  {issue.repoForks.toLocaleString()}
+                </span>
+              )}
             </div>
             {/* The Bookmark Button - Integrated with stopping propagation */}
             <div className="z-20">

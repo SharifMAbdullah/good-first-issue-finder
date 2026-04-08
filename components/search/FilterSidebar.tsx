@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { Platform } from '@/types/issues';
+import { LANGUAGES } from '@/lib/constants/languages';
 
 interface FilterSidebarProps {
   activePlatforms: Platform[];
@@ -11,9 +12,7 @@ interface FilterSidebarProps {
   onToggleLanguage: (language: string) => void;
 }
 
-// These are our constants for the live search
 const PLATFORMS: Platform[] = ['github', 'gitlab'];
-const LANGUAGES: string[] = ['typescript', 'python', 'javascript', 'rust', 'go', 'java'];
 
 export const FilterSidebar = ({
   activePlatforms,
@@ -63,11 +62,12 @@ export const FilterSidebar = ({
           <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">
             Language
           </h3>
-          <div className="flex flex-col space-y-1">
-            {LANGUAGES.map((l: string): React.ReactElement => 
-              renderToggleButton(l, activeLanguages.includes(l), () => onToggleLanguage(l))
+          <div className="flex flex-col space-y-1 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+            {LANGUAGES.map((lang) =>
+              renderToggleButton(lang.label, activeLanguages.includes(lang.id), () => onToggleLanguage(lang.id))
             )}
           </div>
+          <p className="mt-3 text-[10px] text-zinc-600">Language filter applies to GitHub results</p>
         </section>
 
       </div>
