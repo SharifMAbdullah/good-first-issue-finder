@@ -32,9 +32,9 @@ Open [http://localhost:3000](http://localhost:3000) and navigate to `/search` to
 
 ### `npm run dev` vs `npm run preview`
 
-| Command | Runtime | Use When |
-|---------|---------|----------|
-| `npm run dev` | Standard Next.js dev server | Most development work |
+| Command           | Runtime                       | Use When                                                        |
+| ----------------- | ----------------------------- | --------------------------------------------------------------- |
+| `npm run dev`     | Standard Next.js dev server   | Most development work                                           |
 | `npm run preview` | Cloudflare Workers simulation | Testing KV bindings, `/api/stats`, or Workers-specific behavior |
 
 > **Note:** The `/api/stats` endpoint will return a 500 error when using `npm run dev` because it depends on a Cloudflare KV binding that only exists in the Workers runtime. This is expected — use `npm run preview` if you need to test that endpoint.
@@ -70,7 +70,17 @@ One of the simplest ways to contribute is adding a new GitLab instance:
 
 - **TypeScript strict mode** is enabled — all functions and interfaces should be explicitly typed
 - **Component props** should use named interfaces (e.g., `FilterSidebarProps`, `ResultCardProps`), not inline types
-- Run `npm run lint` before submitting your PR
+
+Before submitting your PR, make sure to do the following:
+
+- Run these commands:
+```bash
+npm run lintcheck # to check if your code is compatible with eslint
+npm run lintfix # to fix eslint issues
+npm run stylecheck # to check if your code style is compatible with prettier
+npm run stylefix # to fix prettier issues
+```
+
 - Follow the existing patterns you see in the codebase
 
 ## Testing
@@ -90,6 +100,7 @@ Setting up a test runner is itself a welcome contribution! Vitest would be a nat
 ## Reporting Issues
 
 Before opening a new issue:
+
 - Check existing [open issues](https://github.com/SharifMAbdullah/good-first-issue-finder/issues) and closed issues to avoid duplicates
 - Use the provided issue templates for [bug reports](.github/ISSUE_TEMPLATE/bug_report.md) and [feature requests](.github/ISSUE_TEMPLATE/feature_request.md)
 

@@ -1,8 +1,8 @@
 // src/types/issues.ts
 
-export type Platform = 'github' | 'gitlab';
+export type Platform = "github" | "gitlab";
 
-export type SortOption = 'newest' | 'oldest' | 'updated' | 'comments' | 'stars' | 'forks';
+export type SortOption = "newest" | "oldest" | "comments" | "stars" | "forks";
 
 // Our clean, unified interface
 export interface UnifiedIssue {
@@ -48,12 +48,15 @@ export interface RawGitlabIssue {
   labels: string[];
   web_url: string;
   author: string;
+  upvotes: number;
 }
 
 export interface FetchIssuesParams {
   platforms: Platform[];
   languages: string[];
   page: number;
+  query: string;
+  sort: string;
 }
 
 export interface PaginatedResponse {

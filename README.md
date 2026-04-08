@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
-A unified aggregator that surfaces **Good First Issues** from GitHub and **Quick Wins** from GitLab into a single, searchable interface — so new contributors spend time coding, not searching.
+A unified aggregator that surfaces **Good First Issues** from GitHub and GitLab into a single, searchable interface — so new contributors spend time coding, not searching.
 
 **[Visit the live site](https://goodfirstissues.net)**
 
@@ -22,16 +22,16 @@ A unified aggregator that surfaces **Good First Issues** from GitHub and **Quick
 
 ## Tech Stack
 
-| Category | Technology |
-|----------|------------|
-| Framework | Next.js 16 (App Router) |
-| Runtime | React 19 |
-| Language | TypeScript 5 |
-| Styling | Tailwind CSS v4 |
-| Animation | Framer Motion |
-| Icons | Lucide React |
+| Category   | Technology                                    |
+| ---------- | --------------------------------------------- |
+| Framework  | Next.js 16 (App Router)                       |
+| Runtime    | React 19                                      |
+| Language   | TypeScript 5                                  |
+| Styling    | Tailwind CSS v4                               |
+| Animation  | Framer Motion                                 |
+| Icons      | Lucide React                                  |
 | Deployment | Cloudflare Workers via @opennextjs/cloudflare |
-| Storage | Cloudflare KV (visitor analytics) |
+| Storage    | Cloudflare KV (visitor analytics)             |
 
 ## Getting Started
 
@@ -39,7 +39,7 @@ A unified aggregator that surfaces **Good First Issues** from GitHub and **Quick
 
 - Node.js >= 20
 - A [GitHub Personal Access Token](https://github.com/settings/tokens) (required)
-- A [GitLab Private Token](https://gitlab.com/-/user_settings/personal_access_tokens) (optional)
+- A [GitLab Private Token](https://gitlab.com/-/user_settings/personal_access_tokens) (required)
 
 ### Setup
 
@@ -47,10 +47,10 @@ A unified aggregator that surfaces **Good First Issues** from GitHub and **Quick
 git clone https://github.com/SharifMAbdullah/good-first-issue-finder.git
 cd good-first-issue-finder
 npm install
-cp .env.example .env.local
+cp .env.example .env.local # To simulate cloudlflare, use .dev.vars
 ```
 
-Edit `.env.local` and add your `GITHUB_TOKEN` (see [.env.example](.env.example) for details).
+Edit `.env.local` and add your `GITHUB_TOKEN` and `GITLAB_TOKEN`(see [.env.example](.env.example) for details).
 
 ```bash
 npm run dev
@@ -62,11 +62,20 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ## Project Structure
 
-```
+```text
 app/
   api/
-    issues/route.ts          # Core API — fetches GitHub + GitLab issues, enriches, sorts
+    issues/route.ts           # Thin Controller (Routing only)
     stats/route.ts            # Visitor counter (Cloudflare KV)
+    services/
+      issueOrchestrator.ts    # Merging, sorting, formatting, enriching
+      github/
+        githubMappers.ts      # GitHub API fetching & enrichment
+        githubClient.ts       # Normalization logic
+      gitlab/
+        gitlabbMappers.ts     # GitLab API fetching & timeout handling
+        gitlabClient.ts       # Normalization logic
+
   search/page.tsx             # Search page with filters, sort, keyword search
   favorites/page.tsx          # Bookmarked issues (localStorage)
   page.tsx                    # Landing page
@@ -106,13 +115,13 @@ types/
 
 Fetches and merges issues from GitHub and GitLab.
 
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| `platforms` | string | `github` | Comma-separated: `github`, `gitlab` |
-| `languages` | string | — | Comma-separated language IDs (e.g., `typescript,python`) |
-| `q` | string | — | Keyword search query |
-| `sort` | string | `newest` | One of: `newest`, `oldest`, `updated`, `comments`, `stars`, `forks` |
-| `page` | number | `1` | Pagination page number |
+| Param       | Type   | Default  | Description                                                         |
+| ----------- | ------ | -------- | ------------------------------------------------------------------- |
+| `platforms` | string | `github` | Comma-separated: `github`, `gitlab`                                 |
+| `languages` | string | —        | Comma-separated language IDs (e.g., `typescript,python`)            |
+| `q`         | string | —        | Keyword search query                                                |
+| `sort`      | string | `newest` | One of: `newest`, `oldest`, `updated`, `comments`, `stars`, `forks` |
+| `page`      | number | `1`      | Pagination page number                                              |
 
 **Response:**
 
@@ -143,10 +152,10 @@ Returns visitor analytics. Requires the `VISITOR_COUNT` Cloudflare KV binding.
 
 See [.env.example](.env.example) for the full list with setup instructions.
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `GITHUB_TOKEN` | Yes | GitHub Personal Access Token for API access |
-| `GITLAB_TOKEN` | No | GitLab Private Token for improved rate limits |
+| Variable       | Required | Description                                   |
+| -------------- | -------- | --------------------------------------------- |
+| `GITHUB_TOKEN` | Yes      | GitHub Personal Access Token for API access   |
+| `GITLAB_TOKEN` | No       | GitLab Private Token for improved rate limits |
 
 ## Deployment
 
@@ -164,15 +173,18 @@ npm run preview   # Build and preview locally in Workers runtime
 
 ### Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Next.js dev server |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
-| `npm run preview` | Cloudflare Workers local preview |
-| `npm run deploy` | Build and deploy to Cloudflare |
-| `npm run cf-typegen` | Regenerate Cloudflare type bindings |
+| Script               | Description                                          |
+| -------------------- | ---------------------------------------------------- |
+| `npm run dev`        | Next.js dev server                                   |
+| `npm run build`      | Production build                                     |
+| `npm run start`      | Start production server                              |
+| `npm run lintcheck`  | Check if your code is compatible with eslint         |
+| `npm run lintfix`    | Fix eslint issues                                    |
+| `npm run stylecheck` | Check if your code style is compatible with prettier |
+| `npm run stylefix`   | Fix prettier issues                                  |
+| `npm run preview`    | Cloudflare Workers local preview                     |
+| `npm run deploy`     | Build and deploy to Cloudflare                       |
+| `npm run cf-typegen` | Regenerate Cloudflare type bindings                  |
 
 ## Contributing
 
